@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SchLoginUsers {
+  user_id   Int         @id @default(autoincrement())
+  username  String      @unique
+  password  String
+  login_status Int @default(1)
+  userRoles UserRole[]
+  SchParents SchParents[]
+  SchTeachers SchTeachers[]
+  SchAdmins SchAdmins[]
+}
+
+model SchoolRoles {
+  role_id   Int         @id @default(autoincrement())
+  role_name String      @unique
+  userRoles UserRole[]
+}
+
+model UserRole {
+  id              Int          @id @default(autoincrement())
+  user_id         Int
+  role_id         Int
+  userRole_status Int          @default(1)
+
+  user   SchLoginUsers @relation(fields: [user_id], references: [user_id])
+  role   SchoolRoles   @relation(fields: [role_id], references: [role_id])
+
+  @@unique([user_id, role_id])
+}
+
+model SchParents {
+  par_id       Int           @id @default(autoincrement())
+  par_fname    String
+  par_lastname String
+  par_phone String?
+  par_email        String?
+  user_id      Int?
+  par_status       Int           @default(1)
+
+  user         SchLoginUsers? @relation(fields: [user_id], references: [user_id])
+}
+
+model SchTeachers {
+  tea_id      Int           @id @default(autoincrement())
+  tea_fname   String
+  tea_lname   String
+  tea_email   String?
+  tea_phone   String?
+  user_id     Int?
+  tea_status  Int           @default(1)
+
+  user        SchLoginUsers? @relation(fields: [user_id], references: [user_id])
+}
+
+model SchAdmins {
+  adm_id     Int           @id @default(autoincrement())
+  adm_fname  String
+  adm_lname  String
+  user_id    Int?
+  adm_status Int           @default(1)
+
+  user       SchLoginUsers? @relation(fields: [user_id], references: [user_id])
+}
