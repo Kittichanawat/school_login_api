@@ -66,7 +66,7 @@ model SchTeachers {
 
   user        SchLoginUsers? @relation(fields: [user_id], references: [user_id])
   SchTeacherClass SchTeacherClass[]
-
+  SchAttendance SchAttendance[]
 }
 
 model SchAdmins {
@@ -113,6 +113,7 @@ model SchStudents {
   user       SchLoginUsers? @relation(fields: [user_id], references: [user_id]) // ความสัมพันธ์กับ Login Users
   SchParentStudent SchParentStudent[]
   SchGrades SchGrades[]
+  SchAttendance SchAttendance[]
 }
 
 model SchClasses {
@@ -121,7 +122,7 @@ model SchClasses {
   class_status Int    @default(1) @map("class_status")            // สถานะห้องเรียน (1 = Active, 0 = Inactive)
   students SchStudents[]
   SchTeacherClass SchTeacherClass[]
-
+  SchAttendance SchAttendance[]
 }
 
 model SchTeacherClass {
@@ -143,6 +144,7 @@ model SchTerms {
   is_deleted    Boolean  @default(false) // สถานะการลบ (0 = ไม่ลบ, 1 = ลบ)
   SchTeacherClass SchTeacherClass[]
   SchGrades SchGrades[]
+  SchAttendance SchAttendance[]
 }
 
 model SchParentStudent {
@@ -169,6 +171,21 @@ model SchGrades {
 
 }
 
+model SchAttendance {
+ atd_id     Int      @id @default(autoincrement())
+ std_id     Int?     
+ class_id   Int?     
+ tea_id     Int      
+ term_id    Int      
+ atd_date   DateTime @db.Date
+ atd_status Int      @default(1)
+  // Relations
+ student    SchStudents?    @relation(fields: [std_id], references: [std_id])
+ class      SchClasses?       @relation(fields: [class_id], references: [class_id])
+ teacher    SchTeachers     @relation(fields: [tea_id], references: [tea_id])
+ term       SchTerms         @relation(fields: [term_id], references: [term_id])
+
+}
 
 
 

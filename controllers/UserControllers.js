@@ -65,6 +65,28 @@ router.post('/login', async (req, res) => {
             });
         }
 
+        const userBasicInfo = await prisma.schLoginUsers.findUnique({
+            where: { username }
+        });
+
+        if (userBasicInfo) {
+            const teacherInfo = await prisma.schTeachers.findFirst({
+                where: {
+                    user_id: userBasicInfo.user_id,
+                    tea_status: 1
+                },
+                include: {
+                    SchTeacherClass: {
+                        where: {
+                            term: {
+                                term_status: 'active'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
         const user = await prisma.schLoginUsers.findUnique({
             where: {
                 username: username,
@@ -135,6 +157,22 @@ router.post('/login', async (req, res) => {
                         NOT: {
                             user_id: null
                         }
+                    },
+                    include: {
+                        SchParentStudent: {
+                            include: {
+                                student: {
+                                    include: {
+                                        user: {
+                                            select: {
+                                                user_fname: true,
+                                                user_lname: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
                 SchStudents: {
@@ -172,6 +210,20 @@ router.post('/login', async (req, res) => {
                                     }
                                 }
                             }
+                        },
+                        SchParentStudent: {
+                            include: {
+                                parent: {
+                                    include: {
+                                        user: {
+                                            select: {
+                                                user_fname: true,
+                                                user_lname: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -200,17 +252,34 @@ router.post('/login', async (req, res) => {
             user_lname: user.user_lname,
             roles: roles,
             profiles: {
-                admin: user.SchAdmins.length > 0 ? user.SchAdmins[0] : null,
-                teacher: user.SchTeachers.length > 0 ? {
-                    ...user.SchTeachers[0],
-                    teacher_classes: user.SchTeachers[0].SchTeacherClass
+                admin: user?.SchAdmins?.length > 0 ? {
+                    adm_id: user.SchAdmins[0]?.adm_id,
+                    adm_status: user.SchAdmins[0]?.adm_status
+                } : null,
+                teacher: user?.SchTeachers?.length > 0 ? {
+                    tea_id: user.SchTeachers[0]?.tea_id,
+                    tea_status: user.SchTeachers[0]?.tea_status,
+                    teacher_classes: user.SchTeachers[0]?.SchTeacherClass || []
                 } : null,
                 executive: user.SchExecutives.length > 0 ? user.SchExecutives[0] : null,
                 registrar: user.SchRegistrars.length > 0 ? user.SchRegistrars[0] : null,
-                parent: user.SchParents.length > 0 ? user.SchParents[0] : null,
-                student: user.SchStudents.length > 0 ? {
+                parent: user?.SchParents?.length > 0 ? {
+                    par_id: user.SchParents[0].par_id,
+                    par_status: user.SchParents[0].par_status,
+                    students: user.SchParents[0].SchParentStudent?.map(ps => ({
+                        student_name: ps?.student?.user ? 
+                            `${ps.student.user.user_fname || ''} ${ps.student.user.user_lname || ''}` : 
+                            'ไม่ระบุ'
+                    })) || []
+                } : null,
+                student: user?.SchStudents?.length > 0 ? {
                     ...user.SchStudents[0],
-                    class: user.SchStudents[0].class
+                    class: user.SchStudents[0]?.class ?? null,
+                    parents: user.SchStudents[0]?.SchParentStudent?.map(ps => ({
+                        parent_name: ps?.parent?.user ?
+                            `${ps.parent.user.user_fname || ''} ${ps.parent.user.user_lname || ''}` :
+                            'ไม่ระบุ'
+                    })) || []
                 } : null
             }
         };
@@ -235,7 +304,19 @@ router.post('/login', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Login error:', error);
+        console.error('Login error details:', {
+            message: error.message,
+            code: error.code,
+            meta: error.meta
+        });
+        
+        if (error.code === 'P2025') {
+            return res.status(404).json({
+                status: 'error',
+                message: 'ไม่พบข้อมูลผู้ใช้'
+            });
+        }
+        
         res.status(500).json({
             status: 'error',
             message: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ',
