@@ -16,38 +16,24 @@ datasource db {
 model SchLoginUsers {
   user_id   Int         @id @default(autoincrement())
   username  String      @unique
+  user_nat_id  String?        @unique                    
   password  String
   user_fname  String?
   user_lname  String?
   user_email  String?
   user_phone  String?
   login_status Int @default(1)
-  userRoles UserRole[]
+ 
   SchParents SchParents[]
   SchTeachers SchTeachers[]
   SchAdmins SchAdmins[]
   SchExecutives SchExecutives[]
   SchRegistrars SchRegistrars[]
   SchStudents SchStudents[]
+  userAddresses UserAddress[]
 }
 
-model SchRoles {
-  role_id   Int         @id @default(autoincrement())
-  role_name String      @unique
-  userRoles UserRole[]
-}
 
-model UserRole {
-  id              Int          @id @default(autoincrement())
-  user_id         Int
-  role_id         Int
-  userRole_status Int          @default(1)
-
-  user   SchLoginUsers @relation(fields: [user_id], references: [user_id])
-  role   SchRoles   @relation(fields: [role_id], references: [role_id])
-
-  @@unique([user_id, role_id])
-}
 
 model SchParents {
   par_id       Int           @id @default(autoincrement())
@@ -67,6 +53,7 @@ model SchTeachers {
   user        SchLoginUsers? @relation(fields: [user_id], references: [user_id])
   SchTeacherClass SchTeacherClass[]
   SchAttendance SchAttendance[]
+  SchBehaviors SchBehaviors[]
 }
 
 model SchAdmins {
@@ -100,7 +87,6 @@ model SchRegistrars {
 
 model SchStudents {
   std_id     Int           @id @default(autoincrement()) @map("std_id") // Primary Key, Auto Increment
-  std_nat_id  String        @unique                     // เลขบัตรประชาชนของนักเรียน
   std_code   String        @unique                     // รหัสประจำตัวนักเรียน
   std_gend String        @map("std_gend")                            // เพศ (male, female)
   std_dob    DateTime?     @map("std_dob")                               // วันเกิด
@@ -114,11 +100,12 @@ model SchStudents {
   SchParentStudent SchParentStudent[]
   SchGrades SchGrades[]
   SchAttendance SchAttendance[]
+  SchBehaviors SchBehaviors[]
 }
 
 model SchClasses {
   class_id     Int    @id @default(autoincrement()) @map("class_id") // Primary Key, Auto Increment
-  class_name   String @map("class_name")                          // ชื่อห้องเรียน
+  class_name   String @map("class_name") @unique                    // ชื่อห้องเรียน
   class_status Int    @default(1) @map("class_status")            // สถานะห้องเรียน (1 = Active, 0 = Inactive)
   students SchStudents[]
   SchTeacherClass SchTeacherClass[]
@@ -187,6 +174,64 @@ model SchAttendance {
 
 }
 
+model SchAddress {
+  addr_id          Int       @id @default(autoincrement())  // Primary Key
+  addr_h_num       String                                 // บ้านเลขที่
+  addr_moo         String?                                // หมู่ที่ (nullable)
+  addr_road        String?                                // ถนน (nullable)
+  addr_sub_dist    String                                 // ตำบล
+  addr_dist        String                                 // อำเภอ
+  addr_prov        String                                 // จังหวัด
+  addr_zip_code    String                                 // รหัสไปรษณีย์
+  addr_tel_home    String?                                // โทรศัพท์บ้าน (nullable)
+  house_reg_num    String?                                // เลขทะเบียนบ้าน (nullable)
+
+  userAddresses    UserAddress[]
+}
+
+model UserAddress {
+  user_addr_id     Int          @id @default(autoincrement())  // Primary Key
+  user_id          Int                                         // เชื่อมกับ user_id
+  addr_id          Int                                         // เชื่อมกับ addr_id
+  address_type     String @default("current")             // ประเภทที่อยู่
+
+  user             SchLoginUsers @relation(fields: [user_id], references: [user_id])  // ความสัมพันธ์กับ SchLoginUsers
+  address          SchAddress    @relation(fields: [addr_id], references: [addr_id])  // ความสัมพันธ์กับ SchAddress
+}
+model SchBehaviors {
+  bhv_id         Int       @id @default(autoincrement())  // Primary Key
+  std_id         Int                                      // รหัสนักเรียน
+  bhv_type       String                                   // ประเภทพฤติกรรม
+  bhv_desc       String?                                  // รายละเอียดพฤติกรรม (nullable)
+  reported_date  DateTime                                 // วันที่รายงาน
+  tea_id         Int                                      // รหัสครู
+  bhv_status     Int       @default(1)                   // สถานะ (1 = Active, 0 = Inactive)
+
+  // Relations
+  student        SchStudents @relation(fields: [std_id], references: [std_id])  // ความสัมพันธ์กับ SchStudents
+  teacher        SchTeachers @relation(fields: [tea_id], references: [tea_id]) // ความสัมพันธ์กับ SchTeachers
+}
+model SchProvince {
+  prv_id   Int        @id @default(autoincrement()) // Primary Key
+  prv_name String     @unique                      // ชื่อจังหวัด
+  SchDistrict SchDistrict[]
+}
+model SchDistrict {
+  dis_id   Int        @id @default(autoincrement()) // Primary Key
+  dis_name String                                     // ชื่ออำเภอ
+  prv_id   Int                                        // รหัสจังหวัด
+
+  province      SchProvince   @relation(fields: [prv_id], references: [prv_id]) // ความสัมพันธ์กับ Province
+  subDistricts  SchSubDistrict[]                           // ความสัมพันธ์กับตำบล (1 อำเภอมีหลายตำบล)
+}
+model  SchSubDistrict {
+  sub_dis_id   Int        @id @default(autoincrement()) // Primary Key
+  sub_dis_name String                                     // ชื่อตำบล
+  dis_id       Int                                        // รหัสอำเภอ
+  postal_code       String                                     // รหัสไปรษณีย์
+
+  district          SchDistrict   @relation(fields: [dis_id], references: [dis_id]) // ความสัมพันธ์กับ District
+}
 
 
 

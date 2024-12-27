@@ -92,7 +92,12 @@ router.post('/login', async (req, res) => {
                 username: username,
                 login_status: 1
             },
-            include: {
+            select: {
+                user_id: true,
+                username: true,
+                user_nat_id: true,
+                user_fname: true,
+                user_lname: true,
                 SchAdmins: {
                     where: {
                         adm_status: 1,
@@ -248,6 +253,7 @@ router.post('/login', async (req, res) => {
         let userProfile = {
             user_id: user.user_id,
             username: user.username,
+            user_nat_id: user.user_nat_id,
             user_fname: user.user_fname,
             user_lname: user.user_lname,
             roles: roles,
