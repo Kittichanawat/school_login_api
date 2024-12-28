@@ -105,7 +105,8 @@ model SchStudents {
 
 model SchClasses {
   class_id     Int    @id @default(autoincrement()) @map("class_id") // Primary Key, Auto Increment
-  class_name   String @map("class_name") @unique                    // ชื่อห้องเรียน
+  class_level  String? @map("class_level") @unique                    // ชื่อห้องเรียน
+  class_room   String? @map("class_room") @unique                    // ห้องเรียน
   class_status Int    @default(1) @map("class_status")            // สถานะห้องเรียน (1 = Active, 0 = Inactive)
   students SchStudents[]
   SchTeacherClass SchTeacherClass[]
@@ -176,13 +177,11 @@ model SchAttendance {
 
 model SchAddress {
   addr_id          Int       @id @default(autoincrement())  // Primary Key
-  addr_h_num       String                                 // บ้านเลขที่
-  addr_moo         String?                                // หมู่ที่ (nullable)
-  addr_road        String?                                // ถนน (nullable)
+  addr_etc         String                                 // อื่นๆ
   addr_sub_dist    String                                 // ตำบล
   addr_dist        String                                 // อำเภอ
-  addr_prov        String                                 // จังหวัด
-  addr_zip_code    String                                 // รหัสไปรษณีย์
+  addr_prv        String                                 // จังหวัด
+  addr_pos_code    String                                 // รหัสไปรษณีย์
   addr_tel_home    String?                                // โทรศัพท์บ้าน (nullable)
   house_reg_num    String?                                // เลขทะเบียนบ้าน (nullable)
 
@@ -193,7 +192,7 @@ model UserAddress {
   user_addr_id     Int          @id @default(autoincrement())  // Primary Key
   user_id          Int                                         // เชื่อมกับ user_id
   addr_id          Int                                         // เชื่อมกับ addr_id
-  address_type     String @default("current")             // ประเภทที่อยู่
+  addr_type     String @default("current")             // ประเภทที่อยู่
 
   user             SchLoginUsers @relation(fields: [user_id], references: [user_id])  // ความสัมพันธ์กับ SchLoginUsers
   address          SchAddress    @relation(fields: [addr_id], references: [addr_id])  // ความสัมพันธ์กับ SchAddress
@@ -210,27 +209,6 @@ model SchBehaviors {
   // Relations
   student        SchStudents @relation(fields: [std_id], references: [std_id])  // ความสัมพันธ์กับ SchStudents
   teacher        SchTeachers @relation(fields: [tea_id], references: [tea_id]) // ความสัมพันธ์กับ SchTeachers
-}
-model SchProvince {
-  prv_id   Int        @id @default(autoincrement()) // Primary Key
-  prv_name String     @unique                      // ชื่อจังหวัด
-  SchDistrict SchDistrict[]
-}
-model SchDistrict {
-  dis_id   Int        @id @default(autoincrement()) // Primary Key
-  dis_name String                                     // ชื่ออำเภอ
-  prv_id   Int                                        // รหัสจังหวัด
-
-  province      SchProvince   @relation(fields: [prv_id], references: [prv_id]) // ความสัมพันธ์กับ Province
-  subDistricts  SchSubDistrict[]                           // ความสัมพันธ์กับตำบล (1 อำเภอมีหลายตำบล)
-}
-model  SchSubDistrict {
-  sub_dis_id   Int        @id @default(autoincrement()) // Primary Key
-  sub_dis_name String                                     // ชื่อตำบล
-  dis_id       Int                                        // รหัสอำเภอ
-  postal_code       String                                     // รหัสไปรษณีย์
-
-  district          SchDistrict   @relation(fields: [dis_id], references: [dis_id]) // ความสัมพันธ์กับ District
 }
 
 
