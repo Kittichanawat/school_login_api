@@ -3,6 +3,7 @@ const app = express();
 const cors = require('cors');
 const userController = require('./controllers/UserControllers');
 const provinceData = require('./data/api_province_with_amphure_tambon.json');
+const addressController = require('./controllers/addressController');
 // Middleware
 app.use(cors());  // เพิ่ม CORS middleware
 app.use(express.json());  // สำหรับ parse JSON
@@ -10,6 +11,7 @@ app.use(express.urlencoded({ extended: true }));  // สำหรับ parse UR
 
 // Routes
 app.use('/user', userController);
+app.use('/address', addressController);
 
 app.get('/provinces', (req, res) => {
     try {

@@ -15,13 +15,13 @@ datasource db {
 
 model SchLoginUsers {
   user_id   Int         @id @default(autoincrement())
-  username  String      @unique
+  user_uname  String?      @unique
   user_nat_id  String?        @unique                    
-  password  String
+  user_password  String?
   user_fname  String?
   user_lname  String?
-  user_email  String?
-  user_phone  String?
+  user_email  String
+  user_phone  String
   login_status Int @default(1)
  
   SchParents SchParents[]
@@ -37,7 +37,7 @@ model SchLoginUsers {
 
 model SchParents {
   par_id       Int           @id @default(autoincrement())
-  user_id      Int?
+  user_id      Int
   par_status       Int           @default(1)
 
   user         SchLoginUsers? @relation(fields: [user_id], references: [user_id])
@@ -47,7 +47,7 @@ model SchParents {
 model SchTeachers {
   tea_id      Int           @id @default(autoincrement())
 
-  user_id     Int?
+  user_id     Int
   tea_status  Int           @default(1)
 
   user        SchLoginUsers? @relation(fields: [user_id], references: [user_id])
@@ -58,7 +58,7 @@ model SchTeachers {
 
 model SchAdmins {
   adm_id     Int           @id @default(autoincrement())
-  user_id    Int?
+  user_id    Int
   adm_status Int           @default(1)
 
   user       SchLoginUsers? @relation(fields: [user_id], references: [user_id])
@@ -69,7 +69,7 @@ model SchExecutives {
                        // นามสกุลผู้บริหาร
   position    String        @map("position")                             // ตำแหน่ง เช่น ผู้อำนวยการ
                    // เบอร์โทร (Nullable)
-  user_id     Int?          @map("user_id")                              // user_id ที่เชื่อมไปยังตาราง Login Users
+  user_id     Int          @map("user_id")                              // user_id ที่เชื่อมไปยังตาราง Login Users
   exec_status Int           @default(1)                                  // สถานะ (1 = Active, 0 = Inactive)
 
   user        SchLoginUsers? @relation(fields: [user_id], references: [user_id]) // ความสัมพันธ์ไปยัง Login Users (ถ้ามี)
@@ -78,7 +78,7 @@ model SchExecutives {
 model SchRegistrars {
   reg_id      Int           @id @default(autoincrement()) @map("reg_id") // Primary Key, Auto Increment
 
-  user_id     Int?          @map("user_id")                             // user_id ที่เชื่อมไปยังตาราง Login Users
+  user_id     Int          @map("user_id")                             // user_id ที่เชื่อมไปยังตาราง Login Users
   reg_status  Int           @default(1)                                 // สถานะ (1 = Active, 0 = Inactive)
 
   user        SchLoginUsers? @relation(fields: [user_id], references: [user_id]) // ความสัมพันธ์ไปยัง Login Users (ถ้ามี)
@@ -90,8 +90,8 @@ model SchStudents {
   std_code   String        @unique                     // รหัสประจำตัวนักเรียน
   std_gend String        @map("std_gend")                            // เพศ (male, female)
   std_dob    DateTime?     @map("std_dob")                               // วันเกิด
-  class_id   Int?          @map("class_id")                          // รหัสห้องเรียน (Nullable)
-  user_id    Int?          @map("user_id")                           // user_id ที่เชื่อมไปยัง Login Users
+  class_id   Int          @map("class_id")                          // รหัสห้องเรียน (Nullable)
+  user_id    Int          @map("user_id")                           // user_id ที่เชื่อมไปยัง Login Users
   status     Int           @default(1)                              // สถานะ (1 = Active, 0 = Inactive)
   std_state  String        @default("normal")           // สถานะการศึกษา
 
@@ -101,26 +101,28 @@ model SchStudents {
   SchGrades SchGrades[]
   SchAttendance SchAttendance[]
   SchBehaviors SchBehaviors[]
+  SchStudentClassHistory SchStudentClassHistory[]
 }
 
 model SchClasses {
   class_id     Int    @id @default(autoincrement()) @map("class_id") // Primary Key, Auto Increment
-  class_level  String? @map("class_level") @unique                    // ชื่อห้องเรียน
-  class_room   String? @map("class_room") @unique                    // ห้องเรียน
+  class_level  String @map("class_level") @unique                    // ชื่อห้องเรียน
+  class_room   String @map("class_room") @unique                    // ห้องเรียน
   class_status Int    @default(1) @map("class_status")            // สถานะห้องเรียน (1 = Active, 0 = Inactive)
   students SchStudents[]
   SchTeacherClass SchTeacherClass[]
   SchAttendance SchAttendance[]
+  SchStudentClassHistory SchStudentClassHistory[]
 }
 
 model SchTeacherClass {
   teaclas_id Int           @id @default(autoincrement()) // Primary Key, Auto Increment
   tea_id     Int           // รหัสครู
-  class_id   Int?          // รหัสห้องเรียน (Nullable)
+  class_id   Int          // รหัสห้องเรียน (Nullable)
   term_id    Int           // รหัสภาคเรียน
 
   teacher    SchTeachers   @relation(fields: [tea_id], references: [tea_id]) // ความสัมพันธ์กับตาราง SchTeachers
-  class      SchClasses?   @relation(fields: [class_id], references: [class_id]) // ความสัมพันธ์กับตาราง SchClasses
+  class      SchClasses   @relation(fields: [class_id], references: [class_id]) // ความสัมพันธ์กับตาราง SchClasses
   term       SchTerms      @relation(fields: [term_id], references: [term_id]) // ความสัมพันธ์กับตาราง SchTerms
 }
 
@@ -133,6 +135,7 @@ model SchTerms {
   SchTeacherClass SchTeacherClass[]
   SchGrades SchGrades[]
   SchAttendance SchAttendance[]
+  SchStudentClassHistory SchStudentClassHistory[]
 }
 
 model SchParentStudent {
@@ -200,8 +203,9 @@ model UserAddress {
 model SchBehaviors {
   bhv_id         Int       @id @default(autoincrement())  // Primary Key
   std_id         Int                                      // รหัสนักเรียน
-  bhv_type       String                                   // ประเภทพฤติกรรม
-  bhv_desc       String?                                  // รายละเอียดพฤติกรรม (nullable)
+  bhv_type_id    Int                                      // รหัสประเภทพฤติกรรม (พฤติกรรมที่ดี/ไม่ดี)
+  bhv_detail_id  Int?                                     // รหัสพฤติกรรม (nullable ถ้ากรอกเอง)
+  custom_behavior String?                                // พฤติกรรมที่กรอกเอง (nullable)
   reported_date  DateTime                                 // วันที่รายงาน
   tea_id         Int                                      // รหัสครู
   bhv_status     Int       @default(1)                   // สถานะ (1 = Active, 0 = Inactive)
@@ -209,8 +213,42 @@ model SchBehaviors {
   // Relations
   student        SchStudents @relation(fields: [std_id], references: [std_id])  // ความสัมพันธ์กับ SchStudents
   teacher        SchTeachers @relation(fields: [tea_id], references: [tea_id]) // ความสัมพันธ์กับ SchTeachers
+  type           SchBehaviorTypes @relation(fields: [bhv_type_id], references: [bhv_type_id]) // ความสัมพันธ์กับ SchBehaviorTypes
+  detail         SchBehaviorDetails? @relation(fields: [bhv_detail_id], references: [bhv_detail_id]) // ความสัมพันธ์กับ SchBehaviorDetails (nullable)
 }
 
+model SchBehaviorTypes {
+  bhv_type_id    Int       @id @default(autoincrement()) // Primary Key
+  bhv_type_name  String    @unique                      // ชื่อประเภทพฤติกรรม เช่น พฤติกรรมที่ดี, พฤติกรรมที่ไม่ดี
+  bhv_type_status Int      @default(1)                 // สถานะ (1 = Active, 0 = Inactive)
+
+  behaviors      SchBehaviors[]                        // ความสัมพันธ์กับ SchBehaviors
+  details        SchBehaviorDetails[]                  // ความสัมพันธ์กับ SchBehaviorDetails
+}
+
+model SchBehaviorDetails {
+  bhv_detail_id  Int       @id @default(autoincrement()) // Primary Key
+  bhv_type_id    Int                                      // รหัสประเภทพฤติกรรม
+  bhv_detail_name String    @unique                      // ชื่อพฤติกรรม เช่น ไม่เชื่อครู, โดดเรียน
+  bhv_detail_status Int     @default(1)                 // สถานะ (1 = Active, 0 = Inactive)
+
+  type           SchBehaviorTypes @relation(fields: [bhv_type_id], references: [bhv_type_id]) // ความสัมพันธ์กับ SchBehaviorTypes
+  behaviors      SchBehaviors[]                        // ความสัมพันธ์กับ SchBehaviors
+}
+model SchStudentClassHistory {
+  stdh_id             Int       @id @default(autoincrement()) // Primary Key
+  std_id         Int                                        // รหัสนักเรียน
+  class_id       Int                                        // รหัสห้องเรียน
+  term_id        Int                                        // รหัสภาคเรียน
+  start_date     DateTime                                  // วันที่เริ่มเรียนในชั้น/ห้องนี้
+  end_date       DateTime?                                 // วันที่สิ้นสุดการเรียนในชั้น/ห้องนี้ (nullable)
+  stdh_status         Int        @default(1)                   // สถานะ (1 = Active, 0 = Inactive)
+
+  // Relations
+  student        SchStudents @relation(fields: [std_id], references: [std_id]) // ความสัมพันธ์กับ SchStudents
+  class          SchClasses  @relation(fields: [class_id], references: [class_id]) // ความสัมพันธ์กับ SchClasses
+  term           SchTerms    @relation(fields: [term_id], references: [term_id]) // ความสัมพันธ์กับ SchTerms
+}
 
 
 
