@@ -29,14 +29,79 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
+// Route สำหรับบึงข้อมูลจังหวัด อำเภอ ตำบล
+app.get('/provinces', async (req, res) => {
+    try {
+        const provinces = await prisma.schProvince.findMany({
+            select: {
+                prv_id: true,
+                prv_name_th: true,
+                prv_name_en: true,
+                district: {
+                    select: {
+                        dis_id: true,
+                        dis_name_th: true,
+                        dis_name_en: true,
+                        subdistrict: {
+                            select: {
+                                subd_id: true,
+                                subd_name_th: true,
+                                subd_name_en: true,
+                                pos_code: true
+                            }
+                        }
+                    }
+                }
+            },
+            where: {
+                prv_deletedat: null // เลือกเฉพาะข้อมูลที่ยังไม่ถูกลบ
+            },
+            orderBy: {
+                prv_name_th: 'asc'
+            }
+        });
+
+        // แปลงข้อมูลให้ตรงกับรูปแบบเดิม
+        const formattedData = provinces.map(province => ({
+            id: province.prv_id,
+            name_th: province.prv_name_th,
+            name_en: province.prv_name_en,
+            amphure: province.district.map(district => ({
+                id: district.dis_id,
+                name_th: district.dis_name_th,
+                name_en: district.dis_name_en,
+                tambon: district.subdistrict.map(subdistrict => ({
+                    id: subdistrict.subd_id,
+                    name_th: subdistrict.subd_name_th,
+                    name_en: subdistrict.subd_name_en,
+                    zip_code: subdistrict.pos_code
+                }))
+            }))
+        }));
+
+        res.json({
+            status: 'success',
+            data: formattedData
+        });
+
+    } catch (error) {
+        console.error('Error fetching provinces:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'ไม่สามารถดึงข้อมูลจังหวัดได้',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
 // Route สำหรับบันทึกที่อยู่
 app.post('/', authenticateToken, async (req, res) => {
     try {
         const {
             addr_etc,
-            addr_sub_dist,
-            addr_dist,
-            addr_prv,
+            subd_id,      // ID ตำบล
+            dis_id,       // ID อำเภอ
+            prv_id,       // ID จังหวัด
             addr_pos_code,
             addr_tel_home,
             house_reg_num,
@@ -46,9 +111,9 @@ app.post('/', authenticateToken, async (req, res) => {
         // Log ข้อมูลที่ได้รับ
         console.log('Received data:', {
             addr_etc,
-            addr_sub_dist,
-            addr_dist,
-            addr_prv,
+            subd_id,
+            dis_id,
+            prv_id,
             addr_pos_code,
             addr_tel_home,
             house_reg_num,
@@ -57,7 +122,7 @@ app.post('/', authenticateToken, async (req, res) => {
         });
 
         // ตรวจสอบข้อมูลที่จำเป็น
-        if (!addr_etc || !addr_sub_dist || !addr_dist || !addr_prv || !addr_pos_code) {
+        if (!addr_etc || !subd_id || !dis_id || !prv_id || !addr_pos_code) {
             return res.status(400).json({
                 status: 'error',
                 message: 'กรุณากรอกข้อมูลที่อยู่ให้ครบถ้วน'
@@ -68,12 +133,29 @@ app.post('/', authenticateToken, async (req, res) => {
         const address = await prisma.schAddress.create({
             data: {
                 addr_etc,
-                addr_sub_dist,
-                addr_dist,
-                addr_prv,
+                prv_id: parseInt(prv_id),
+                dis_id: parseInt(dis_id),
+                subd_id: parseInt(subd_id),
                 addr_pos_code,
                 addr_tel_home: addr_tel_home || null,
                 house_reg_num: house_reg_num || null
+            },
+            include: {
+                province: {
+                    select: {
+                        prv_name_th: true
+                    }
+                },
+                district: {
+                    select: {
+                        dis_name_th: true
+                    }
+                },
+                subdistrict: {
+                    select: {
+                        subd_name_th: true
+                    }
+                }
             }
         });
 
@@ -90,7 +172,12 @@ app.post('/', authenticateToken, async (req, res) => {
             status: 'success',
             message: 'บันทึกข้อมูลที่อยู่สำเร็จ',
             data: {
-                address,
+                address: {
+                    ...address,
+                    province_name: address.province.prv_name_th,
+                    district_name: address.district.dis_name_th,
+                    subdistrict_name: address.subdistrict.subd_name_th
+                },
                 userAddress
             }
         });
@@ -105,7 +192,7 @@ app.post('/', authenticateToken, async (req, res) => {
 
         res.status(500).json({
             status: 'error',
-            message: error.message,
+            message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล',
             error: process.env.NODE_ENV === 'development' ? {
                 message: error.message,
                 code: error.code,

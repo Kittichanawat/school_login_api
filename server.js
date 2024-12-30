@@ -1,33 +1,20 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const { PrismaClient } = require('@prisma/client');
 const userController = require('./controllers/UserControllers');
-const provinceData = require('./data/api_province_with_amphure_tambon.json');
 const addressController = require('./controllers/addressController');
+
+const prisma = new PrismaClient();
+
 // Middleware
-app.use(cors());  // เพิ่ม CORS middleware
-app.use(express.json());  // สำหรับ parse JSON
-app.use(express.urlencoded({ extended: true }));  // สำหรับ parse URL-encoded bodies
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/user', userController);
-app.use('/address', addressController);
-
-app.get('/provinces', (req, res) => {
-    try {
-        res.json({
-            status: 'success',
-            data: provinceData
-        });
-    } catch (error) {
-        res.status(500).json({
-            status: 'error',
-            message: 'ไม่สามารถดึงข้อมูลจังหวัดได้'
-        });
-    }
-});
-
-
+app.use('/', addressController);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

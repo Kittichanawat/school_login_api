@@ -179,15 +179,19 @@ model SchAttendance {
 }
 
 model SchAddress {
-  addr_id          Int       @id @default(autoincrement())  // Primary Key
-  addr_etc         String                                 // อื่นๆ
-  addr_sub_dist    String                                 // ตำบล
-  addr_dist        String                                 // อำเภอ
-  addr_prv        String                                 // จังหวัด
-  addr_pos_code    String                                 // รหัสไปรษณีย์
-  addr_tel_home    String?                                // โทรศัพท์บ้าน (nullable)
-  house_reg_num    String?                                // เลขทะเบียนบ้าน (nullable)
+  addr_id          Int       @id @default(autoincrement())
+  addr_etc         String
+  prv_id           Int                                      // เปลี่ยนจาก addr_prv
+  dis_id           Int                                      // เปลี่ยนจาก addr_dist
+  subd_id          Int                                      // เปลี่ยนจาก addr_sub_dist
+  addr_pos_code    String
+  addr_tel_home    String?
+  house_reg_num    String?
 
+  // เพิ่ม Relations
+  province         SchProvince     @relation(fields: [prv_id], references: [prv_id])
+  district         SchDistrict     @relation(fields: [dis_id], references: [dis_id])
+  subdistrict      SchSubDistrict  @relation(fields: [subd_id], references: [subd_id])
   userAddresses    UserAddress[]
 }
 
@@ -250,6 +254,46 @@ model SchStudentClassHistory {
   term           SchTerms    @relation(fields: [term_id], references: [term_id]) // ความสัมพันธ์กับ SchTerms
 }
 
+model SchProvince { 
+  prv_id          Int       @id @default(autoincrement())
+  prv_name_th     String
+  prv_name_en     String
+  prv_geo_id Int
+  prv_createdat   DateTime
+  prv_updatedat   DateTime
+  prv_deletedat  DateTime? // Nullable for soft deletes
+
+  district    SchDistrict[] // Relation to Amphures
+  address    SchAddress[] // Relation to Address
+}
+
+model SchDistrict { 
+  dis_id         Int       @id @default(autoincrement())
+  dis_name_th    String
+  dis_name_en    String
+  prv_id         Int
+  dis_createdat  DateTime
+  dis_updatedat  DateTime
+  dis_deletedat  DateTime? // Nullable for soft deletes
+
+  province   SchProvince  @relation(fields: [prv_id], references: [prv_id])
+  subdistrict    SchSubDistrict[]  // Relation to Tambons
+  address    SchAddress[] // Relation to Address
+}
+
+model SchSubDistrict { 
+  subd_id         Int       @id @default(autoincrement())
+  subd_name_th    String
+  subd_name_en    String
+  dis_id  Int
+  pos_code    String     // String to handle non-numeric or leading-zero codes
+  subd_createdat  DateTime
+  subd_updatedat  DateTime
+  subd_deletedat  DateTime?  // Nullable for soft deletes
+
+  district    SchDistrict    @relation(fields: [dis_id], references: [dis_id])
+  address    SchAddress[] // Relation to Address
+}
 
 
 
